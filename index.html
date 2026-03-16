@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>∫CALCLE — Calculus Wordle</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=JetBrains+Mono:wght@400;500;700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="toast"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SETUP SCREEN
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="setup-screen">
+    <div class="setup-card">
+      <div class="setup-logo">∫CALC<span>LE</span></div>
+      <div class="setup-tagline">A calculus puzzle for the mathematically inclined</div>
+
+      <!-- API Key -->
+      <div class="setup-section">
+        <div class="setup-label">OpenRouter API Key</div>
+        <div class="setup-hint">
+          Free at <a href="https://openrouter.ai/keys" target="_blank" class="setup-link">openrouter.ai/keys</a>
+          — no credit card required
+        </div>
+        <div class="key-row">
+          <input
+            id="api-key-input"
+            class="model-input"
+            type="password"
+            placeholder="sk-or-v1-..."
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <button class="eye-btn" id="eye-btn" onclick="toggleKeyVisibility()" title="Show/hide key">👁</button>
+        </div>
+        <div id="key-error" class="key-error" style="display:none;"></div>
+      </div>
+
+      <!-- Model picker -->
+      <div class="setup-section">
+        <div class="setup-label">Model <span class="setup-sublabel">— all free tier</span></div>
+        <div class="model-list" id="model-list">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <!-- What is OpenRouter -->
+      <div class="info-box">
+        <div class="info-icon">ℹ</div>
+        <div>
+          OpenRouter is a free AI gateway. Sign up, grab a free API key, and choose from
+          dozens of free models including Llama, Gemma, Mistral, and Qwen.
+          Your key is stored only in your browser (localStorage) and never sent anywhere except OpenRouter.
+        </div>
+      </div>
+
+      <button class="start-btn" id="start-btn" onclick="startGame()" disabled>
+        Start Playing →
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       GAME SCREEN
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="game-screen" style="display:none;">
+
+    <header>
+      <div class="logo">∫CALC<span>LE</span></div>
+      <div class="tagline">A calculus puzzle for the mathematically inclined</div>
+
+      <div class="bar-row" style="margin-top:16px;">
+        <span class="bar-label">Mode</span>
+        <button class="pill-btn active" id="btn-daily"   onclick="setMode('daily')">📅 Daily</button>
+        <button class="pill-btn"        id="btn-endless" onclick="setMode('endless')">∞ Endless</button>
+        <div class="bar-divider"></div>
+        <span class="bar-label">Course</span>
+        <button class="pill-btn active" id="btn-calc1" onclick="setCalc('calc1')">Calc I</button>
+        <button class="pill-btn"        id="btn-calc2" onclick="setCalc('calc2')">Calc II</button>
+        <div class="bar-divider"></div>
+        <button class="pill-btn" onclick="showSetup()" title="Change model or key">⚙ Settings</button>
+      </div>
+
+      <div class="bar-row" id="topic-bar"></div>
+
+      <div class="status-bar">
+        <div class="stat"><span class="stat-val" id="stat-streak">0</span><span>streak</span></div>
+        <div class="stat"><span class="stat-val" id="stat-score">0</span><span>score</span></div>
+        <div class="stat"><span class="stat-val" id="stat-wins">0</span><span>wins</span></div>
+      </div>
+    </header>
+
+    <main>
+      <div id="endless-info" style="display:none; width:100%; max-width:500px;">
+        <div class="round-info" id="round-info-text">Round 1 · Easy (1/5)</div>
+        <div class="progress-bar" style="margin-top:6px;">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="question-meta">
+          <span class="question-label">Evaluate / Identify</span>
+          <span class="topic-tag" id="topic-tag"></span>
+        </div>
+        <div class="loading-state" id="loading-state">
+          <div class="loading-spinner"></div>
+          <div class="loading-text" id="loading-text">Generating question…</div>
+        </div>
+        <div id="question-body" style="display:none; width:100%;">
+          <div class="question-text" id="question-text"></div>
+          <div id="diff-badge"></div>
+          <div class="ai-badge">
+            <div class="ai-dot static" id="ai-dot"></div>
+            <span id="ai-label">OpenRouter</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="error-banner" id="error-banner"></div>
+      <div class="choices-grid" id="choices-grid" style="display:none;"></div>
+
+      <div class="end-card" id="end-card">
+        <h2 id="end-title"></h2>
+        <div class="answer-reveal">The answer was</div>
+        <div class="correct-answer" id="end-answer"></div>
+        <div class="explanation" id="end-explanation"></div>
+        <button class="solution-toggle" id="solution-toggle" onclick="toggleSolution()">
+          <span class="toggle-arrow">▾</span>
+          <span id="solution-toggle-label">Show Full Solution</span>
+        </button>
+        <div class="solution-panel" id="solution-panel">
+          <div class="solution-header"><span>✦</span> Step-by-Step Solution</div>
+          <div class="solution-body" id="solution-body">
+            <div class="solution-loading" id="solution-loading">
+              <div class="mini-spin"></div>Generating solution…
+            </div>
+          </div>
+        </div>
+        <button class="next-btn" id="next-btn">Next Question →</button>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
